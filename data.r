@@ -76,6 +76,10 @@ if(!file.exists(sponsors)) {
 
       h = htmlParse(file, encoding = "UTF-8")
       legislature = xpathSApply(h, "//div[@id='kepvcsop-tagsag']/table/tr/td[1]", xmlValue)
+      legislature = legislature[ legislature != "" ]
+      constituency = xpathSApply(h, "//div[@id='valasztas']/table/tr/td[1]", xmlValue)
+      constituency = which(constituency %in% legislature)
+      constituency = xpathSApply(h, "//div[@id='valasztas']/table/tr/td[3]", xmlValue)[ constituency ]
 
       start = xpathSApply(h, "//div[@id='kepvcsop-tagsag']/table/tr/td[3]", xmlValue)
       end = xpathSApply(h, "//div[@id='kepvcsop-tagsag']/table/tr/td[4]", xmlValue)
@@ -94,13 +98,17 @@ if(!file.exists(sponsors)) {
       name = xpathSApply(h, "//h1", xmlValue)
       # party = xpathSApply(h, "//div[@id='kepvcsop-tagsag']/table/tr/td[2]", xmlValue)
 
-      s = rbind(s, data.frame(url = i, legislature, name, photo, mandate, stringsAsFactors = FALSE))
+      s = rbind(s, data.frame(url = i, legislature, name, constituency, photo, mandate, stringsAsFactors = FALSE))
 
       cat("\n")
 
     }
 
   }
+  s$constituency = gsub("(.*)\\smegye(.*)", "\\1", s$constituency)
+  s$constituency = paste0(gsub("\\s", "_", s$constituency), "_County")
+  s$constituency[ grepl("Budapest", s$constituency) ] = "Budapest"
+  s$constituency[ s$constituency == "Országos_lista_County" ] = "Hungary"
 
   a = merge(a, s, by = c("url", "legislature"), all.x = TRUE)
   a$photo[ !grepl("jpg$", a$photo) ] = NA

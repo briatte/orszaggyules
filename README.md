@@ -25,6 +25,8 @@ The `build.r` script then assembles the edge lists and plots the networks, with 
 
 ## Sponsors
 
+The sponsors data has one row per legislature in which the sponsor sat.
+
 - `legislature` -- legislature years
 - `url` -- profile URL, shortened
 - `name` -- name (in Western order, cleaned up from "Dr." titles)

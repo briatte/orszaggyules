@@ -1,6 +1,3 @@
-plot = T
-gexf = T
-
 meta = c("Hungary", "Országgyűlés")
 mode = "fruchtermanreingold"
 
@@ -104,6 +101,7 @@ for(ii in rev(unique(na.omit(b$legislature)))) {
   n %v% "url" = as.character(s[ network.vertex.names(n), "url" ])
   n %v% "sex" = as.character(s[ network.vertex.names(n), "sex" ])
   # n %v% "born" = as.numeric(substr(s[ network.vertex.names(n), "born" ], 1, 4))
+  n %v% "constituency" = as.character(s[ network.vertex.names(n), "constituency" ])
   n %v% "party" = as.character(s[ network.vertex.names(n), "party" ])
   n %v% "partyname" = as.character(groups[ n %v% "party" ])
   n %v% "lr" = as.numeric(scores[ n %v% "party" ])
@@ -161,7 +159,7 @@ for(ii in rev(unique(na.omit(b$legislature)))) {
   n %v% "name" = gsub("(.*)\\s\\((.*)\\)", "\\1", network.vertex.names(n))
 
   if(gexf)
-    get_gexf(paste0("net_hu", ii), n, meta, mode, colors, extra = "name")
+    get_gexf(paste0("net_hu", ii), n, meta, mode, colors, extra = c("name", "constituency"))
 
 }
 
