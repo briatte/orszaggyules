@@ -35,3 +35,4 @@ The sponsors data has one row per legislature in which the sponsor sat.
 - `partyname` -- party affiliation, full name (in Hungarian)
 - `sex` -- gender (F/M), imputed from first names
 - `mandate` -- number of years in office when legislature started (int)
+- `constituency` -- constituency, stored as the string to its Wikipedia English entry
