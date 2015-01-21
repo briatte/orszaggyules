@@ -135,7 +135,7 @@ get_gexf <- function(id, n, meta, mode, colors, extra = NULL) {
 
   nodecolors = lapply(n %v% "party", function(x)
     data.frame(r = rgb[x, 1], g = rgb[x, 2], b = rgb[x, 3], a = .5))
-  nodecolors = as.matrix(rbind_all(nodecolors))
+  nodecolors = as.matrix(bind_rows(nodecolors))
 
   # node placement
   position = do.call(paste0("gplot.layout.", mode),

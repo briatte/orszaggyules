@@ -21,7 +21,7 @@ for(ii in rev(unique(na.omit(b$legislature)))) {
   # directed edge list
   #
 
-  edges = rbind_all(lapply(data$authors, function(d) {
+  edges = bind_rows(lapply(data$authors, function(d) {
 
     w = unlist(strsplit(d, ";"))
 
