@@ -20,5 +20,6 @@ gexf = TRUE
 
 source("data.r")  # scrape bills and sponsors -- see README first
 source("build.r") # assemble the networks
+source("comm.r")  # add committee co-membership
 
 # have a nice day
