@@ -1,7 +1,8 @@
 This repository contains code to build cosponsorship networks from bills passed in the [Hungarian Parliament](http://www.parlament.hu/).
 
-- [interactive demo](http://briatte.org/orszaggyules)
-- [static plots](http://briatte.org/orszaggyules/plots.html)
+- [interactive demo](http://f.briatte.org/parlviz/orszaggyules)
+- [static plots](http://f.briatte.org/parlviz/orszaggyules/plots.html)
+- [more countries](https://github.com/briatte/parlnet)
 
 # HOWTO
 
