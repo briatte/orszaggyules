@@ -69,8 +69,11 @@ for(ii in rev(unique(na.omit(b$legislature)))) {
   edges = merge(edges, aggregate(w ~ j, function(x) sum(1 / x), data = self))
   edges$gsw = edges$nfw / edges$w
 
+  # sanity check
+  stopifnot(edges$gsw <= 1)
+
   # final edge set: cosponsor, first author, weights
-  edges = edges[, c("i", "j", "raw", "nfw", "gsw") ]
+  edges = select(edges, i, j, raw, nfw, gsw)
 
   cat(nrow(edges), "edges, ")
 
@@ -81,7 +84,7 @@ for(ii in rev(unique(na.omit(b$legislature)))) {
   n = network(edges[, 1:2 ], directed = TRUE)
 
   n %n% "country" = meta[1]
-  n %n% "title" = paste(meta[2], "legislature", ii)
+  n %n% "title" = paste(meta[2], substr(ii, 1, 4), "to", substr(ii, 6, 9))
 
   n %n% "n_bills" = nrow(data)
   n %n% "n_sponsors" = table(subset(b, legislature == ii)$n_au)
@@ -108,6 +111,11 @@ for(ii in rev(unique(na.omit(b$legislature)))) {
   n %v% "photo" = as.character(s[ network.vertex.names(n), "photo" ])
   n %v% "nyears" = as.numeric(s[ network.vertex.names(n), "mandate" ])
 
+	# unweighted degree
+	n %v% "degree" = degree(n)
+	q = n %v% "degree"
+	q = as.numeric(cut(q, unique(quantile(q)), include.lowest = TRUE))
+
   set.edge.attribute(n, "source", as.character(edges[, 1])) # cosponsor
   set.edge.attribute(n, "target", as.character(edges[, 2])) # first author
 
@@ -116,27 +124,12 @@ for(ii in rev(unique(na.omit(b$legislature)))) {
   set.edge.attribute(n, "gsw", edges$gsw) # Gross-Shalizi weights
 
   #
-  # weighted measures
-  #
-
-  n = get_modularity(n, weights = "raw")
-  n = get_modularity(n, weights = "nfw")
-  n = get_modularity(n, weights = "gsw")
-
-  n = get_centrality(n, weights = "raw")
-  n = get_centrality(n, weights = "nfw")
-  n = get_centrality(n, weights = "gsw")
-
-  #
   # network plot
   #
 
   if(plot) {
 
-    q = n %v% "degree"
-    q = as.numeric(cut(q, unique(quantile(q)), include.lowest = TRUE))
-
-    ggnet_save(n, file = paste0("plots/net_hu", ii),
+    save_plot(n, file = paste0("plots/net_hu", ii),
                i = colors[ s[ n %e% "source", "party" ] ],
                j = colors[ s[ n %e% "target", "party" ] ],
                q, colors, order)
@@ -159,7 +152,7 @@ for(ii in rev(unique(na.omit(b$legislature)))) {
   n %v% "name" = gsub("(.*)\\s\\((.*)\\)", "\\1", network.vertex.names(n))
 
   if(gexf)
-    get_gexf(paste0("net_hu", ii), n, meta, mode, colors, extra = c("name", "constituency"))
+    save_gexf(paste0("net_hu", ii), n, meta, mode, colors, extra = c("name", "constituency"))
 
 }
 

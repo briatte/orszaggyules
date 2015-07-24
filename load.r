@@ -6,11 +6,9 @@ library(XML)
 
 # networks
 
-library(igraph) # keep first
+library(rgexf) # keep first
 library(network)
 library(sna)
-library(rgexf)
-library(tnet)
 
 # plots
 
