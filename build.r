@@ -1,7 +1,10 @@
 meta = c("Hungary", "Országgyűlés")
 mode = "fruchtermanreingold"
 
-for(ii in rev(unique(na.omit(b$legislature)))) {
+b$legislature[ b$legislature == "2014-" ] = "2014-2018"
+a$legislature[ a$legislature == "2014-" ] = "2014-2018"
+
+for(ii in unique(na.omit(b$legislature))) {
 
   cat(ii)
   data = subset(b, legislature == ii & n_au > 1)
@@ -21,16 +24,21 @@ for(ii in rev(unique(na.omit(b$legislature)))) {
   # directed edge list
   #
 
-  edges = bind_rows(lapply(data$authors, function(d) {
+  edges = lapply(data$authors, function(d) {
 
     w = unlist(strsplit(d, ";"))
+    w = w[ w %in% s$uid ] # remove a few missing Fidesz sponsors in 2014-
 
-    d = expand.grid(i = s$uid[ s$uid %in% w ],
-                    j = s$uid[ s$uid == w[1]], stringsAsFactors = FALSE)
+    if(length(w) > 0) {
 
-    return(data.frame(d, w = length(w) - 1)) # number of cosponsors
+      d = expand.grid(i = s$uid[ s$uid %in% w ],
+                      j = s$uid[ s$uid == w[1]], stringsAsFactors = FALSE)
 
-  }))
+      return(data.frame(d, w = length(w) - 1)) # number of cosponsors
+
+    }
+
+  }) %>% bind_rows
 
   rownames(s) = s$uid
 

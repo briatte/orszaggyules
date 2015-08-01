@@ -8,9 +8,9 @@ if(!file.exists(bills) | !file.exists(sponsors)) {
   a = data.frame()
   b = data.frame()
 
-  for(i in rev(dir("raw", pattern = "bills", full.names = TRUE))) {
+  for(i in rev(list.files("raw/bill-lists", full.names = TRUE))) {
 
-    legislature = gsub("raw/bills|\\.html", "", i)
+    legislature = gsub("raw/bill-lists/bills|\\.html", "", i)
     h = htmlParse(i, encoding = "UTF-8")
 
     url = xpathSApply(h, "//div[@class='irom-cim']//a[1]/@href")
@@ -57,11 +57,11 @@ if(!file.exists(sponsors)) {
 
   # rerun to solve network errors
   u = unique(a$url)
-  s = data.frame()
+  s = data_frame()
   for(i in rev(u)) {
 
     cat("Downloading MP", sprintf("%4.0f", which(u == i)))
-    file = paste0("raw/", i, ".html")
+    file = paste0("raw/mp-pages/mp-", i, ".html")
 
     if(!file.exists(file))
       download.file(paste0("http://www.parlament.hu/internet/cplsql/ogy_kpv.kepv_adat?p_azon=", i),
@@ -75,8 +75,10 @@ if(!file.exists(sponsors)) {
     } else {
 
       h = htmlParse(file, encoding = "UTF-8")
+
       legislature = xpathSApply(h, "//div[@id='kepvcsop-tagsag']/table/tr/td[1]", xmlValue)
       legislature = legislature[ legislature != "" ]
+
       constituency = xpathSApply(h, "//div[@id='valasztas']/table/tr/td[1]", xmlValue)
       constituency = which(constituency %in% legislature)
       constituency = xpathSApply(h, "//div[@id='valasztas']/table/tr/td[3]", xmlValue)[ constituency ]
@@ -96,11 +98,12 @@ if(!file.exists(sponsors)) {
       photo = ifelse(is.null(photo), NA, photo)
 
       name = xpathSApply(h, "//h1", xmlValue)
+
       # party = xpathSApply(h, "//div[@id='kepvcsop-tagsag']/table/tr/td[2]", xmlValue)
 
-      s = rbind(s, data.frame(url = i, legislature, name, constituency, photo, mandate, stringsAsFactors = FALSE))
+      s = rbind(s, data_frame(url = i, legislature, name, constituency, photo, mandate))
 
-      cat("\n")
+      cat(":", name, "\n")
 
     }
 
@@ -110,7 +113,9 @@ if(!file.exists(sponsors)) {
   s$constituency[ grepl("Budapest", s$constituency) ] = "Budapest"
   s$constituency[ s$constituency == "Országos_lista_County" ] = "Hungary"
 
+  stopifnot(paste(a$url, a$legislature) %in% paste(s$url, s$legislature))
   a = merge(a, s, by = c("url", "legislature"), all.x = TRUE)
+
   a$photo[ !grepl("jpg$", a$photo) ] = NA
 
   table(is.na(a$photo))
@@ -144,6 +149,7 @@ if(!file.exists(sponsors)) {
 
   # clean names
   a$name = gsub("(.*)(D|d)r\\.\\s?", "", a$name)
+
   # bugfix (dr. prefix at end of name)
   a$name[ a$name == "" & a$url == "t027" ] = "Tóth Tiborné"
 
@@ -161,9 +167,10 @@ if(!file.exists(sponsors)) {
   a = subset(a, !(legislature == "1998-2002" & url == "t385"))
 
   a$sex = NA
-  a$sex[ a$firstname %in% c("Ádám", "Ákos", "Alajos", "Albert", "Alpár", "Andor", "András", "Antal", "Árpád", "Attila", "Balázs", "Bálint", "Barna", "Barnabás", "Béla", "Bence", "Benedek", "Csaba", "Dániel", "Dávid", "Dénes", "Dezső", "Előd", "Endre", "Erik", "Ernő", "Etele", "Ervin", "Ferenc", "Flórián", "Gábor", "Gellért", "Gergely", "Gergő", "Géza", "György", "Győző", "Gyula", "Ildikó", "Imre", "István", "Iván", "János", "Jenő", "József", "Kálmán", "Károly", "Kornél", "Kristóf", "Krisztián", "Lajos", "László", "Lénárd", "Levente", "Lorántné", "Lukács", "Marcell", "Máriusz", "Márk", "Márton", "Máté", "Mátyás", "Mihály", "Miklós", "Mózes", "Nándor", "Norbert", "Oszkár", "Ottó", "Pál", "Péter", "Pierre", "Rezső", "Richard", "Richárd", "Róbert", "Roland", "Sándor", "Szabolcs", "Sebestyén", "Szilárd", "Tamás", "Tibor", "Tihamér", "Tivadar", "Viktor", "Vilmos", "Zoltán", "Zsolt", "(Veszprém)") ] = "M"
-  a$sex[ a$firstname %in% c("Ágnes", "Anna", "Annamária", "Bernadett", "Dóra", "Edit", "Endréné", "Erika", "Erzsébet", "Éva", "Ferencné", "Gáborné", "Gabriella", "Györgyi", "Ibolya", "Ilona", "Istvánné", "Józsefné", "Judit", "Katalin", "Klára", "Krisztina", "Lajosné", "Lászlóné", "Lorántné", "Magda", "Magdolna", "Margit", "Mária", "Márta", "Melinda", "Monika", "Mónika", "Rebeka", "Róbertné", "Rózsa", "Sándorné", "Szilvia", "Szófia", "Tiborné", "Timea", "Valéria", "Virág", "Zita", "Zsuzsa", "Zsuzsanna") ] = "F"
+  a$sex[ a$firstname %in% c("Ádám", "Ákos", "Alajos", "Albert", "Alpár", "Andor", "András", "Antal", "Árpád", "Attila", "Balázs", "Bálint", "Barna", "Barnabás", "Béla", "Bence", "Benedek", "Bertalan", "Csaba", "Dániel", "Dávid", "Dénes", "Dezső", "Előd", "Endre", "Erik", "Ernő", "Etele", "Ervin", "Ferenc", "Flórián", "Gábor", "Gellért", "Gergely", "Gergő", "Géza", "Gordon", "György", "Győző", "Gyula", "Ildikó", "Imre", "István", "Iván", "János", "Jenő", "József", "Kálmán", "Károly", "Kornél", "Kristóf", "Krisztián", "Lajos", "László", "Lénárd", "Levente", "Lorántné", "Lukács", "Marcell", "Máriusz", "Márk", "Márton", "Máté", "Mátyás", "Mihály", "Miklós", "Mózes", "Nándor", "Norbert", "Oszkár", "Ottó", "Pál", "Péter", "Pierre", "Rezső", "Richard", "Richárd", "Róbert", "Roland", "Sándor", "Szabolcs", "Sebestyén", "Szilárd", "Tamás", "Tibor", "Tihamér", "Tivadar", "Viktor", "Vilmos", "Zoltán", "Zsolt", "(Veszprém)") ] = "M"
+  a$sex[ a$firstname %in% c("Ágnes", "Anita", "Anna", "Annamária", "Bernadett", "Dóra", "Edit", "Endréné", "Erika", "Erzsébet", "Éva", "Ferencné", "Gáborné", "Gabriella", "Györgyi", "Ibolya", "Ilona", "Istvánné", "Józsefné", "Judit", "Katalin", "Klára", "Krisztina", "Lajosné", "Lászlóné", "Lorántné", "Magda", "Magdolna", "Margit", "Mária", "Márta", "Melinda", "Monika", "Mónika", "Rebeka", "Róbertné", "Rózsa", "Sándorné", "Szilvia", "Szófia", "Tiborné", "Timea", "Valéria", "Virág", "Zita", "Zsuzsa", "Zsuzsanna") ] = "F"
 
+  stopifnot(!is.na(a$sex))
   unique(subset(a, is.na(a$sex)))
 
   write.csv(a, sponsors, row.names = FALSE)
@@ -171,5 +178,6 @@ if(!file.exists(sponsors)) {
 }
 
 a = read.csv(sponsors, stringsAsFactors = FALSE)
+stopifnot(!is.na(groups[ a$party ]))
 
 # kthxbye

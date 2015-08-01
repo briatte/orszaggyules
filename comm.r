@@ -2,7 +2,7 @@
 
 load("data/net_hu.rda")
 raw = data.frame()
-sponsors = dir("raw", pattern = "^\\w{1}\\d{3}\\.html$", full.names = TRUE)
+sponsors = dir("raw/mp-pages", full.names = TRUE)
 
 # find unique committees
 
@@ -28,7 +28,8 @@ for(i in sponsors) {
 
 }
 
-raw = filter(raw, substr(y, 1, 4) >= 1998 & y != "2014-")
+raw = filter(raw, substr(y, 1, 4) >= 1998)
+raw$y[ raw$y == "2014-" ] = "2014-2018"
 
 cat(":", nrow(unique(raw[, -1 ])), "unique categories\n")
 
@@ -46,9 +47,9 @@ comm = data.frame(u = unique(raw$u), stringsAsFactors = FALSE)
 
 # add sponsor columns
 for(i in sponsors)
-  comm[, gsub("raw/|\\.html", "", i) ] = 0
+  comm[, gsub("raw/mp-pages/mp-|\\.html", "", i) ] = 0
 
-raw$i = gsub("raw/|\\.html", "", raw$i)
+raw$i = gsub("raw/mp-pages/mp-|\\.html", "", raw$i)
 
 for(i in colnames(comm)[ -1 ])
     comm[ , i ] = as.numeric(comm$u %in% raw$u[ raw$i == i ])
