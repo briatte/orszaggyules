@@ -1,28 +1,27 @@
 # add committee co-memberships
 
-load("data/net_hu.rda")
-raw = data.frame()
+raw = data_frame()
 sponsors = dir("raw/mp-pages", full.names = TRUE)
 
 # find unique committees
 
 cat("Parsing committees")
-for(i in sponsors) {
+for (i in sponsors) {
 
   h = htmlParse(i)
   y = xpathSApply(h, "//div[@id='biz-tagsag']/table/tr/td[1]", xmlValue)
   n = xpathSApply(h, "//div[@id='biz-tagsag']/table/tr/td[2]//a", xmlValue)
   l = xpathSApply(h, "//div[@id='biz-tagsag']/table/tr/td[2]//a/@href")
-  if(length(l)) {
+  if (length(l)) {
 
-    for(j in 1:length(y)) { # LOCF for legislatures
-      if(y[ j ] == "")
+    for (j in 1:length(y)) { # LOCF for legislatures
+      if (y[ j ] == "")
         y[ j ] = k
       else
         k = y[ j ]
     }
 
-    raw = rbind(raw, data.frame(i, y, n, l, stringsAsFactors = FALSE))
+    raw = rbind(raw, data_frame(i, y, n, l))
 
   }
 
@@ -43,36 +42,36 @@ write.csv(raw[, -1 ] %>%
 # unique legislature-committee pairings, using links
 raw$u = paste(raw$y, raw$l)
 
-comm = data.frame(u = unique(raw$u), stringsAsFactors = FALSE)
+comm = data_frame(u = unique(raw$u))
 
 # add sponsor columns
-for(i in sponsors)
+for (i in sponsors)
   comm[, gsub("raw/mp-pages/mp-|\\.html", "", i) ] = 0
 
 raw$i = gsub("raw/mp-pages/mp-|\\.html", "", raw$i)
 
-for(i in colnames(comm)[ -1 ])
+for (i in colnames(comm)[ -1 ])
     comm[ , i ] = as.numeric(comm$u %in% raw$u[ raw$i == i ])
 
-stopifnot(a$url %in% names(comm[, -1]))
+stopifnot(gsub("(.*)?p_azon=(.*)", "\\2", a$url) %in% names(comm[, -1]))
 
 # assign co-memberships to networks
-for(i in ls(pattern = "^net_")) {
+for (i in ls(pattern = "^net_")) {
 
   n = get(i)
   cat(i, ":", network.size(n), "nodes")
 
   sp = network.vertex.names(n)
-  names(sp) = n %v% "url"
+  names(sp) = gsub("(.*)?p_azon=(.*)", "\\2", n %v% "url")
   stopifnot(names(sp) %in% colnames(comm))
 
   m = comm[ substr(comm$u, 1, 4) == gsub("\\D", "", i), names(sp) ]
 
   # solve a few duplicated entries due to same-legislature party transitions
-  if(any(grepl("\\.", colnames(m)))) {
+  if (any(grepl("\\.", colnames(m)))) {
 
     cat(" (solving duplicates)")
-    z = data.frame(x = network.vertex.names(n), y = n %v% "url", stringsAsFactors = FALSE)
+    z = data_frame(x = network.vertex.names(n), y = n %v% "url")
     z = group_by(z, y) %>% mutate(z = paste0(y, ".", 1:length(y) - 1))
     z$z = gsub("\\.0", "", z$z)
     sp = z$x
@@ -90,12 +89,10 @@ for(i in ls(pattern = "^net_")) {
   colnames(m) = sp[ colnames(m) ]
   rownames(m) = sp[ rownames(m) ]
 
-  e = data.frame(i = n %e% "source",
-                 j = n %e% "target",
-                 stringsAsFactors = FALSE)
+  e = data_frame(i = n %e% "source", j = n %e% "target")
   e$committee = NA
 
-  for(j in 1:nrow(e))
+  for (j in 1:nrow(e))
     e$committee[ j ] = m[ e$i[ j ], e$j[ j ] ]
 
   cat(" co-memberships:",
@@ -117,6 +114,3 @@ for(i in ls(pattern = "^net_")) {
   assign(paste0("co", i), nn)
 
 }
-
-save(list = ls(pattern = "^((co)?net|edges|bills)_hu\\d{4}$"),
-     file = "data/net_hu.rda")

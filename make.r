@@ -18,11 +18,23 @@ dir.create("raw/mp-pages"   , showWarnings = FALSE)
 
 plot = TRUE
 gexf = TRUE
+mode = "fruchtermanreingold"
+meta = c(
+  "cty" = "Hungary",
+  "lang" = "hu", # Wikipedia language for chamber and constituencies
+  "ch" = "Országgyűlés",
+  "type" = "Unicameral",
+  "ipu" = 2141,
+  "seats" = 384
+)
 
 # build routine
 
 source("data.r")  # scrape bills and sponsors -- see README first
 source("build.r") # assemble the networks
 source("comm.r")  # add committee co-membership
+
+save(list = ls(pattern = "^((co)?net|edges|bills)_hu\\d{4}$"),
+     file = "data/net_hu.rda")
 
 # have a nice day

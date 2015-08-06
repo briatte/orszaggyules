@@ -43,5 +43,5 @@ scores = c(
   "IND"    = Inf
 )
 
+stopifnot(names(colors) == names(groups))
 stopifnot(names(colors) == names(scores))
-order = names(colors)[ order(scores) ]

@@ -3,12 +3,12 @@ sponsors = "data/sponsors.csv"
 
 # scrape bills (semi-manual: the index files require to be manually downloaded)
 
-if(!file.exists(bills) | !file.exists(sponsors)) {
+if (!file.exists(bills) | !file.exists(sponsors)) {
 
-  a = data.frame()
-  b = data.frame()
+  a = data_frame()
+  b = data_frame()
 
-  for(i in rev(list.files("raw/bill-lists", full.names = TRUE))) {
+  for (i in rev(list.files("raw/bill-lists", full.names = TRUE))) {
 
     legislature = gsub("raw/bill-lists/bills|\\.html", "", i)
     h = htmlParse(i, encoding = "UTF-8")
@@ -17,8 +17,7 @@ if(!file.exists(bills) | !file.exists(sponsors)) {
     ref = xpathSApply(h, "//div[@class='irom-cim']//a[1]", xmlValue)
     title = xpathSApply(h, "//div[@class='irom-cim']/table/tbody/tr/td[2]", xmlValue)
     status = xpathSApply(h, "//div[@class='irom-adat']//table/tbody/tr[2]/td[2]", xmlValue)
-    authors = xpathSApply(h, "//div[@class='irom-adat']//table/tbody/tr/td[text()='Benyújtó(k)']/following-sibling::td",
-                          xmlValue)
+    authors = xpathSApply(h, "//div[@class='irom-adat']//table/tbody/tr/td[text()='Benyújtó(k)']/following-sibling::td", xmlValue)
 
     b = rbind(b, data.frame(legislature, url, ref, title, status, authors, stringsAsFactors = FALSE))
     cat(i, ":", length(ref), "bills\n")
@@ -42,110 +41,142 @@ b$n_au = 1 + str_count(b$authors, ";")
 
 # scrape sponsors
 
-if(!file.exists(sponsors)) {
+if (!file.exists(sponsors)) {
 
   # extract URLs
   a = unique(a)
   a$url = gsub("(.*)p_azon%3D", "", a$url)
   a = subset(a, !grepl("http", url))
 
-  # extract parties
-  a$party = gsub("(.*)\\s\\((.*)\\)", "\\2", a$uid)
-  a$party[ a$party == "független" ] = "IND"
-  a$party = toupper(a$party)
-  table(a$party)
-
   # rerun to solve network errors
   u = unique(a$url)
   s = data_frame()
-  for(i in rev(u)) {
 
-    cat("Downloading MP", sprintf("%4.0f", which(u == i)))
+  for (i in rev(u)) {
+
+    # cat("Downloading MP", sprintf("%4.0f", which(u == i)))
     file = paste0("raw/mp-pages/mp-", i, ".html")
 
-    if(!file.exists(file))
+    if (!file.exists(file))
       download.file(paste0("http://www.parlament.hu/internet/cplsql/ogy_kpv.kepv_adat?p_azon=", i),
                     file, mode = "wb", quiet = TRUE)
 
-    if(!file.info(file)$size) {
+    if (!file.info(file)$size) {
 
-      cat(": failed\n")
+      # cat(": failed\n")
       file.remove(file)
 
     } else {
 
       h = htmlParse(file, encoding = "UTF-8")
 
+      name = xpathSApply(h, "//h1", xmlValue)
+
       legislature = xpathSApply(h, "//div[@id='kepvcsop-tagsag']/table/tr/td[1]", xmlValue)
-      legislature = legislature[ legislature != "" ]
+      # legislature = legislature[ legislature != "" ]
 
-      constituency = xpathSApply(h, "//div[@id='valasztas']/table/tr/td[1]", xmlValue)
-      constituency = which(constituency %in% legislature)
-      constituency = xpathSApply(h, "//div[@id='valasztas']/table/tr/td[3]", xmlValue)[ constituency ]
+      # last legislature carried forward
+      while(any(legislature == ""))
+        legislature[ which(legislature == "") ] = legislature[ which(legislature == "") - 1 ]
 
+      # start of mandate
       start = xpathSApply(h, "//div[@id='kepvcsop-tagsag']/table/tr/td[3]", xmlValue)
-      end = xpathSApply(h, "//div[@id='kepvcsop-tagsag']/table/tr/td[4]", xmlValue)
-      end[ grepl("\\s", end) ] = 2014
 
-      mandate = apply(cbind(start, end), 1, function(x) {
+      # end of mandate
+      end = xpathSApply(h, "//div[@id='kepvcsop-tagsag']/table/tr/td[4]", xmlValue)
+
+      # seniority
+      end[ grepl("\\s", end) ] = Sys.Date()
+      nyears = apply(cbind(start, end), 1, function(x) {
         x = as.numeric(str_extract(x, "[0-9]{4}"))
         seq(x[1], x[2])
       })
-      mandate = unique(as.vector(unlist(mandate)))
-      mandate = sapply(substr(legislature, 1, 4), function(x) sum(mandate < x))
+      nyears = unique(as.vector(unlist(nyears)))
 
       photo = xpathSApply(h, "//img[contains(@alt, 'fényképe')]/@src")
-      photo = ifelse(is.null(photo), NA, photo)
 
-      name = xpathSApply(h, "//h1", xmlValue)
-
-      # party = xpathSApply(h, "//div[@id='kepvcsop-tagsag']/table/tr/td[2]", xmlValue)
-
-      s = rbind(s, data_frame(url = i, legislature, name, constituency, photo, mandate))
-
-      cat(":", name, "\n")
+      s = rbind(s, full_join(
+        data_frame(
+          url = i, name, legislature,
+          party = xpathSApply(h, "//div[@id='kepvcsop-tagsag']/table/tr/td[2]", xmlValue),
+          t = strptime(end, "%Y.%m.%d.") - strptime(start, "%Y.%m.%d."),
+          photo = ifelse(is.null(photo), NA, photo),
+          nyears = sapply(substr(legislature, 1, 4), function(x) sum(nyears < x))
+        ),
+        data_frame(
+          legislature = xpathSApply(h, "//div[@id='valasztas']/table/tr/td[1]", xmlValue),
+          constituency = xpathSApply(h, "//div[@id='valasztas']/table/tr/td[3]", xmlValue)
+        ),
+        by = "legislature"
+      ))
 
     }
 
   }
-  s$constituency = gsub("(.*)\\smegye(.*)", "\\1", s$constituency)
-  s$constituency = paste0(gsub("\\s", "_", s$constituency), "_County")
+
+  s$t[ is.na(s$t) ] = Sys.Date() - as.Date("2014-01-01")
+
+  # select longest party affiliations
+  s = group_by(s, legislature, url) %>%
+    mutate(max = max(t %>% as.numeric)) %>%
+    filter(t == max) %>%
+    select(-t, -max) %>%
+    unique
+
+  # ==============================================================================
+  # CHECK CONSTITUENCIES
+  # ==============================================================================
+
+  s$constituency = gsub("(.*)\\smegye(.*)", "\\1 megye", s$constituency)
   s$constituency[ grepl("Budapest", s$constituency) ] = "Budapest"
-  s$constituency[ s$constituency == "Országos_lista_County" ] = "Hungary"
+  s$constituency[ s$constituency == "Országos lista" ] = "Magyarország" # national
+  s$constituency = gsub("\\s", "_", s$constituency)
+  table(s$constituency, exclude = NULL)
+
+  cat("Checking constituencies,", sum(is.na(s$constituency)), "missing...\n")
+  for (i in na.omit(unique(s$constituency))) {
+
+    g = GET(paste0("https://", meta[ "lang"], ".wikipedia.org/wiki/", i))
+
+    if (status_code(g) != 200)
+      cat("Missing Wikipedia entry:", i, "\n")
+
+    g = xpathSApply(htmlParse(g), "//title", xmlValue)
+    g = gsub("(.*) – Wikipédia(.*)", "\\1", g)
+
+    if (gsub("\\s", "_", g) != i)
+      cat("Discrepancy:", g, "(WP) !=", i ,"(data)\n")
+
+  }
 
   stopifnot(paste(a$url, a$legislature) %in% paste(s$url, s$legislature))
-  a = merge(a, s, by = c("url", "legislature"), all.x = TRUE)
+  a = left_join(a, s, by = c("url", "legislature"))
 
   a$photo[ !grepl("jpg$", a$photo) ] = NA
-
   table(is.na(a$photo))
 
   u = na.omit(unique(a$photo))
-  for(i in rev(u)) {
+  for (i in rev(u)) {
 
-    cat("Downloading photo", sprintf("%4.0f", which(u == i)))
+    # cat("Downloading photo", sprintf("%4.0f", which(u == i)))
     file = gsub("http://www.parlament.hu/kepv/kepek", "photos", i)
 
-    if(!file.exists(file))
+    if (!file.exists(file))
       download.file(i, file, mode = "wb", quiet = TRUE)
 
-    if(!file.info(file)$size) {
+    if (!file.info(file)$size) {
 
-      cat(": failed\n")
+      # cat(": failed\n")
       file.remove(file)
-      a$photo[ a$photo == i ] = NA
 
     } else {
 
-      a$photo[ a$photo == i ] = gsub("photos/|\\.jpg", "", file)
-      cat("\n")
+      a$photo[ a$photo == i ] = file
+      # cat("\n")
 
     }
 
   }
-
-  # photo URL is same as profile URL, except when missing
-  a$photo = ifelse(is.na(a$photo), 0, 1)
 
   # clean names
   a$name = gsub("(.*)(D|d)r\\.\\s?", "", a$name)
@@ -178,6 +209,37 @@ if(!file.exists(sponsors)) {
 }
 
 a = read.csv(sponsors, stringsAsFactors = FALSE)
+
+# standardize parties
+a$party[ a$party == "független" ] = "IND"
+a$party = toupper(a$party)
+
 stopifnot(!is.na(groups[ a$party ]))
+
+a$born = NA # sadly missing at 100%
+a$url = paste0("http://www.parlament.hu/internet/cplsql/ogy_kpv.kepv_adat?p_azon=", a$url)
+
+# ============================================================================
+# QUALITY CONTROL
+# ============================================================================
+
+# - might be missing: born (int of length 4), constituency (chr),
+#   photo (chr, folder/file.ext)
+# - never missing: sex (chr, F/M), nyears (int), url (chr, URL),
+#   party (chr, mapped to colors)
+
+cat("Missing", sum(is.na(a$born)), "years of birth\n")
+stopifnot(is.integer(a$born) & nchar(a$born) == 4 | is.na(a$born))
+
+cat("Missing", sum(is.na(a$constituency)), "constituencies\n")
+stopifnot(is.character(a$constituency))
+
+cat("Missing", sum(is.na(a$photo)), "photos\n")
+stopifnot(is.character(a$photo) & grepl("^photos(_\\w{2})?/(.*)\\.\\w{3}", a$photo) | is.na(a$photo))
+
+stopifnot(!is.na(a$sex) & a$sex %in% c("F", "M"))
+stopifnot(!is.na(a$nyears) & is.integer(a$nyears))
+stopifnot(!is.na(a$url) & grepl("^http(s)?://(.*)", a$url))
+stopifnot(a$party %in% names(colors))
 
 # kthxbye
