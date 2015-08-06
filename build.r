@@ -185,7 +185,6 @@ for (ii in unique(na.omit(b$legislature))) {
   yy = gsub("(.*)\\s\\((.*)\\)", "\\1", network.vertex.names(n))
   stopifnot(!duplicated(yy))
 
-  cat('yo')
   network.vertex.names(n) = gsub("(.*)\\s\\((.*)\\)", "\\1", network.vertex.names(n))
   n %e% "source" = gsub("(.*)\\s\\((.*)\\)", "\\1", n %e% "source")
   n %e% "target" = gsub("(.*)\\s\\((.*)\\)", "\\1", n %e% "target")

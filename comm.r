@@ -56,13 +56,13 @@ for (i in colnames(comm)[ -1 ])
 stopifnot(gsub("(.*)?p_azon=(.*)", "\\2", a$url) %in% names(comm[, -1]))
 
 # assign co-memberships to networks
-for (i in ls(pattern = "^net_")) {
+for (i in ls(pattern = "^net_hu")) {
 
   n = get(i)
   cat(i, ":", network.size(n), "nodes")
 
   sp = network.vertex.names(n)
-  names(sp) = gsub("(.*)?p_azon=(.*)", "\\2", n %v% "url")
+  names(sp) = gsub("(.*)\\?p_azon=(.*)", "\\2", n %v% "url")
   stopifnot(names(sp) %in% colnames(comm))
 
   m = comm[ substr(comm$u, 1, 4) == gsub("\\D", "", i), names(sp) ]
