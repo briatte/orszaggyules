@@ -182,15 +182,6 @@ for (ii in unique(na.omit(b$legislature))) {
   # SAVE GEXF
   # ============================================================================
 
-  yy = gsub("(.*)\\s\\((.*)\\)", "\\1", network.vertex.names(n))
-  stopifnot(!duplicated(yy))
-
-  network.vertex.names(n) = gsub("(.*)\\s\\((.*)\\)", "\\1", network.vertex.names(n))
-  n %e% "source" = gsub("(.*)\\s\\((.*)\\)", "\\1", n %e% "source")
-  n %e% "target" = gsub("(.*)\\s\\((.*)\\)", "\\1", n %e% "target")
-  # clean vertex names for GEXF export
-  # n %v% "name" = gsub("(.*)\\s\\((.*)\\)", "\\1", network.vertex.names(n))
-
   if (gexf)
     save_gexf(n, paste0("net_hu", ii), mode, colors)
 
