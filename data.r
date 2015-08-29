@@ -76,7 +76,7 @@ if (!file.exists(sponsors)) {
       # legislature = legislature[ legislature != "" ]
 
       # last legislature carried forward
-      while(any(legislature == ""))
+      while (any(legislature == ""))
         legislature[ which(legislature == "") ] = legislature[ which(legislature == "") - 1 ]
 
       # start of mandate
@@ -86,12 +86,14 @@ if (!file.exists(sponsors)) {
       end = xpathSApply(h, "//div[@id='kepvcsop-tagsag']/table/tr/td[4]", xmlValue)
 
       # seniority
-      end[ grepl("\\s", end) ] = Sys.Date()
+      end[ grepl("\\s", end) ] = as.character(Sys.Date())
       nyears = apply(cbind(start, end), 1, function(x) {
         x = as.numeric(str_extract(x, "[0-9]{4}"))
         seq(x[1], x[2])
       })
       nyears = unique(as.vector(unlist(nyears)))
+
+      stopifnot(sapply(substr(legislature, 1, 4), function(x) sum(nyears < x)) < 100)
 
       photo = xpathSApply(h, "//img[contains(@alt, 'fényképe')]/@src")
 
